@@ -8,6 +8,10 @@ public static class CatalogEndpoints
 {
     public static RouteGroupBuilder MapCatalogEndpoints(this IEndpointRouteBuilder routes)
     {
+        routes.MapGet("/health", () => Results.Ok())
+            .WithName("CatalogHealth")
+            .WithTags("Health");
+
         var group = routes.MapGroup("/api/products").WithTags("Catalog");
 
         group.MapGet("/", async (CatalogDbContext db) =>

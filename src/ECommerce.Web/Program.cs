@@ -16,6 +16,8 @@ builder.Services.AddHttpClient<CatalogApiClient>(client =>
     client.BaseAddress = new Uri("https+http://gateway"));
 builder.Services.AddHttpClient<OrderingApiClient>(client =>
     client.BaseAddress = new Uri("https+http://gateway"));
+builder.Services.AddHttpClient<PromotionsApiClient>(client =>
+    client.BaseAddress = new Uri("https+http://gateway"));
 
 var app = builder.Build();
 

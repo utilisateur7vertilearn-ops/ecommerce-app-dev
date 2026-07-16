@@ -1,11 +1,7 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
-// Catalog microservice — backed by PostgreSQL (provisioned as a container by Aspire).
-var catalogDb = builder.AddPostgres("postgres").AddDatabase("catalogdb");
-
-var catalog = builder.AddProject<Projects.ECommerce_Catalog_Api>("catalog")
-    .WithReference(catalogDb)
-    .WaitFor(catalogDb);
+// Catalog microservice.
+var catalog = builder.AddProject<Projects.ECommerce_Catalog_Api>("catalog");
 
 // Ordering microservice — depends on Catalog (resolved via service discovery).
 var ordering = builder.AddProject<Projects.ECommerce_Ordering_Api>("ordering")

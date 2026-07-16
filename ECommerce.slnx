@@ -4,6 +4,8 @@
     <Project Path="src/ECommerce.Catalog.Api/ECommerce.Catalog.Api.csproj" />
     <Project Path="src/ECommerce.Gateway/ECommerce.Gateway.csproj" />
     <Project Path="src/ECommerce.Ordering.Api/ECommerce.Ordering.Api.csproj" />
+    <Project Path="src/ECommerce.Promotions.Api/ECommerce.Promotions.Api.csproj" />
+    <Project Path="src/ECommerce.Promotions.Tests/ECommerce.Promotions.Tests.csproj" />
     <Project Path="src/ECommerce.ServiceDefaults/ECommerce.ServiceDefaults.csproj" />
     <Project Path="src/ECommerce.Web/ECommerce.Web.csproj" />
   </Folder>

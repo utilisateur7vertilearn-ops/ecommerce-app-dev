@@ -60,7 +60,22 @@ public static class PromotionsEndpoints
             var normalized = code.Trim().ToUpperInvariant();
             var promotion = await db.Promotions.AsNoTracking().FirstOrDefaultAsync(p => p.Code == normalized);
             var outcome = rules.Validate(promotion, request.Amount);
-            return Results.Ok(outcome);
+            if (!outcome.Valid)
+                return Results.Ok(outcome);
+
+            // Incrément atomique conditionnel : Postgres évalue le WHERE au moment de
+            // l'UPDATE, sous verrou de ligne. Si deux requêtes valident le même code
+            // au même instant avec 1 utilisation restante, l'UPDATE de la seconde
+            // s'exécute après le commit de la première et réévalue "UsesCount < MaxUses"
+            // sur la valeur déjà incrémentée : elle affecte 0 ligne au lieu de doubler
+            // le compteur. Pas de token de concurrence ni de retry nécessaires.
+            var consumed = await db.Promotions
+                .Where(p => p.Code == normalized && p.UsesCount < p.MaxUses)
+                .ExecuteUpdateAsync(setters => setters.SetProperty(p => p.UsesCount, p => p.UsesCount + 1));
+
+            return consumed == 0
+                ? Results.Ok(ValidationOutcome.Invalid("exhausted"))
+                : Results.Ok(outcome);
         })
         .WithName("ValidatePromotion");
 

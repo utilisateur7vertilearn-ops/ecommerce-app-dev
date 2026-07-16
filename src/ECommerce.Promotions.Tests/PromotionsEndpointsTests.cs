@@ -27,11 +27,11 @@ public class PromotionsEndpointsTests : IClassFixture<PromotionsApiFactory>
     [Fact]
     public async Task CreatePromotion_ValidRequest_Returns201()
     {
-        var response = await _client.PostAsJsonAsync("/api/promotions", ValidRequest("WELCOME10"), JsonOptions);
+        var response = await _client.PostAsJsonAsync("/api/promotions", ValidRequest("QATEST01"), JsonOptions);
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var dto = await response.Content.ReadFromJsonAsync<PromotionDto>(JsonOptions);
-        Assert.Equal("WELCOME10", dto!.Code);
+        Assert.Equal("QATEST01", dto!.Code);
     }
 
     [Fact]
@@ -55,10 +55,10 @@ public class PromotionsEndpointsTests : IClassFixture<PromotionsApiFactory>
     [Fact]
     public async Task ValidatePromotion_ValidAmount_ReturnsValidTrue()
     {
-        await _client.PostAsJsonAsync("/api/promotions", ValidRequest("BLACKFRIDAY"), JsonOptions);
+        await _client.PostAsJsonAsync("/api/promotions", ValidRequest("QATEST02"), JsonOptions);
 
         var response = await _client.PostAsJsonAsync(
-            "/api/promotions/BLACKFRIDAY/validate", new ValidateRequest(80m), JsonOptions);
+            "/api/promotions/QATEST02/validate", new ValidateRequest(80m), JsonOptions);
 
         var outcome = await response.Content.ReadFromJsonAsync<ValidationOutcome>(JsonOptions);
         Assert.True(outcome!.Valid);
@@ -74,5 +74,26 @@ public class PromotionsEndpointsTests : IClassFixture<PromotionsApiFactory>
         var outcome = await response.Content.ReadFromJsonAsync<ValidationOutcome>(JsonOptions);
         Assert.False(outcome!.Valid);
         Assert.Equal("unknown_code", outcome.Reason);
+    }
+
+    [Fact]
+    public async Task ValidatePromotion_LastUseConsumed_SubsequentCallReturnsExhausted()
+    {
+        var request = ValidRequest("QATEST03") with { MaxUses = 1 };
+        await _client.PostAsJsonAsync("/api/promotions", request, JsonOptions);
+
+        var first = await _client.PostAsJsonAsync(
+            "/api/promotions/QATEST03/validate", new ValidateRequest(80m), JsonOptions);
+        var firstOutcome = await first.Content.ReadFromJsonAsync<ValidationOutcome>(JsonOptions);
+        Assert.True(firstOutcome!.Valid);
+
+        var second = await _client.PostAsJsonAsync(
+            "/api/promotions/QATEST03/validate", new ValidateRequest(80m), JsonOptions);
+        var secondOutcome = await second.Content.ReadFromJsonAsync<ValidationOutcome>(JsonOptions);
+        Assert.False(secondOutcome!.Valid);
+        Assert.Equal("exhausted", secondOutcome.Reason);
+
+        var dto = await (await _client.GetAsync("/api/promotions/QATEST03")).Content.ReadFromJsonAsync<PromotionDto>(JsonOptions);
+        Assert.Equal(1, dto!.UsesCount);
     }
 }

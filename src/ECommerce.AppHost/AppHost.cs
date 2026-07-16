@@ -8,8 +8,12 @@ var ordering = builder.AddProject<Projects.ECommerce_Ordering_Api>("ordering")
     .WithReference(catalog)
     .WaitFor(catalog);
 
-// Promotions microservice — codes promo. EF Core InMemory for now (Épic 1); Postgres arrives in Épic 2.
-builder.AddProject<Projects.ECommerce_Promotions_Api>("promotions");
+// Promotions microservice — codes promo, backed by PostgreSQL (provisioned as a container by Aspire).
+var promotionsDb = builder.AddPostgres("postgres").AddDatabase("promotionsdb");
+
+builder.AddProject<Projects.ECommerce_Promotions_Api>("promotions")
+    .WithReference(promotionsDb)
+    .WaitFor(promotionsDb);
 
 // API Gateway (YARP) — the single entry point for the services.
 var gateway = builder.AddProject<Projects.ECommerce_Gateway>("gateway")

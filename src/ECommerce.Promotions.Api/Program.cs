@@ -8,7 +8,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 
 builder.Services.AddOpenApi();
-builder.Services.AddDbContext<PromotionsDbContext>(options => options.UseInMemoryDatabase("promotions"));
+builder.AddNpgsqlDbContext<PromotionsDbContext>("promotionsdb");
 builder.Services.AddSingleton<IClock, SystemClock>();
 builder.Services.AddSingleton<PromotionRules>();
 
@@ -27,10 +27,13 @@ else
 
 app.MapPromotionsEndpoints();
 
+// Applique les migrations en attente (et leur seed embarqué) au démarrage.
+// Pratique en dev ; en preprod/prod, appliquer une migration est un geste
+// délibéré et validé par un humain, pas quelque chose qui arrive à chaque boot.
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<PromotionsDbContext>();
-    db.Database.EnsureCreated();
+    db.Database.Migrate();
 }
 
 app.Run();

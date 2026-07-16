@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\ECommerce.Catalog.Api\ECommerce.Catalog.Api.csproj" />
     <ProjectReference Include="..\ECommerce.Ordering.Api\ECommerce.Ordering.Api.csproj" />
+    <ProjectReference Include="..\ECommerce.Promotions.Api\ECommerce.Promotions.Api.csproj" />
     <ProjectReference Include="..\ECommerce.Gateway\ECommerce.Gateway.csproj" />
     <ProjectReference Include="..\ECommerce.Web\ECommerce.Web.csproj" />
   </ItemGroup>

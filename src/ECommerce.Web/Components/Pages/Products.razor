@@ -2,6 +2,7 @@
 @using ECommerce.Web.Services
 @inject CatalogApiClient Catalog
 @inject OrderingApiClient Ordering
+@inject PromotionsApiClient Promotions
 @rendermode InteractiveServer
 
 <PageTitle>Catalog</PageTitle>
@@ -54,7 +55,27 @@ else
             }
         </ul>
 
-        <div class="mb-2">
+        <p>
+            Subtotal: @Subtotal.ToString("C")
+            @if (_discountedTotal is not null)
+            {
+                <strong class="text-success"> → @_discountedTotal.Value.ToString("C") (code @_appliedCode)</strong>
+            }
+        </p>
+
+        <div class="mb-2 d-flex align-items-end gap-2">
+            <div>
+                <label class="form-label">Promo code</label>
+                <input class="form-control" style="max-width: 200px" @bind="_promoCode" />
+            </div>
+            <button class="btn btn-outline-secondary" @onclick="ApplyPromoCode" disabled="@_applyingPromo">Apply</button>
+        </div>
+        @if (!string.IsNullOrEmpty(_promoMessage))
+        {
+            <div class="alert @(_promoIsError ? "alert-danger" : "alert-success") mt-2">@_promoMessage</div>
+        }
+
+        <div class="mb-2 mt-3">
             <label class="form-label">Customer name</label>
             <input class="form-control" style="max-width: 320px" @bind="_customer" />
         </div>
@@ -68,12 +89,30 @@ else
 }
 
 @code {
+    private static readonly Dictionary<string, string> PromoReasonMessages = new()
+    {
+        ["unknown_code"] = "Code promo inconnu.",
+        ["not_started"] = "Ce code n'est pas encore actif.",
+        ["expired"] = "Ce code a expiré.",
+        ["exhausted"] = "Ce code a atteint sa limite d'utilisation.",
+        ["amount_too_low"] = "Le montant du panier est insuffisant pour ce code.",
+    };
+
     private IReadOnlyList<ProductDto>? _products;
     private readonly Dictionary<ProductDto, int> _cart = new();
     private string _customer = "";
     private bool _placing;
     private string? _message;
     private bool _isError;
+
+    private string _promoCode = "";
+    private bool _applyingPromo;
+    private string? _promoMessage;
+    private bool _promoIsError;
+    private decimal? _discountedTotal;
+    private string? _appliedCode;
+
+    private decimal Subtotal => _cart.Sum(c => c.Key.Price * c.Value);
 
     protected override async Task OnInitializedAsync()
     {
@@ -84,6 +123,37 @@ else
     {
         _cart[product] = _cart.TryGetValue(product, out var qty) ? qty + 1 : 1;
         _message = null;
+        _discountedTotal = null;
+        _appliedCode = null;
+    }
+
+    private async Task ApplyPromoCode()
+    {
+        if (string.IsNullOrWhiteSpace(_promoCode))
+        {
+            _promoMessage = "Entrez un code promo.";
+            _promoIsError = true;
+            return;
+        }
+
+        _applyingPromo = true;
+        var result = await Promotions.ValidateAsync(_promoCode, Subtotal);
+        _applyingPromo = false;
+
+        if (result.Valid && result.DiscountedAmount is not null)
+        {
+            _discountedTotal = result.DiscountedAmount;
+            _appliedCode = _promoCode.Trim().ToUpperInvariant();
+            _promoMessage = "Code promo appliqué !";
+            _promoIsError = false;
+        }
+        else
+        {
+            _discountedTotal = null;
+            _appliedCode = null;
+            _promoMessage = PromoReasonMessages.GetValueOrDefault(result.Reason ?? "", "Ce code promo n'est pas valide.");
+            _promoIsError = true;
+        }
     }
 
     private async Task PlaceOrder()
